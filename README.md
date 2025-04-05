@@ -403,7 +403,7 @@ Invoke it like this:
 
 ## Building
 
-Building from source requires Java 1.8, and Maven.
+Building from source requires Java 1.8, or Java 11, and Maven 3.9.0 or later.
 
 1. unpack (if you can read this, you've already done that).
 
@@ -415,9 +415,17 @@ Building from source requires Java 1.8, and Maven.
   ```
 
 3. Build with maven.
-  ```
-  mvn clean package
-  ```
+
+   ```
+   cd callout
+
+   # build with Java11
+   mvn clean package
+
+   # build with Java8
+   mvn -f pom-java8.xml clean package
+
+   ```
 
   This will build the jar and also run all the tests, and copy the jar to the
   resource directory in the sample apiproxy bundle.
