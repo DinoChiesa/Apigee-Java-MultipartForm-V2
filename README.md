@@ -6,23 +6,61 @@ inbound payload with MIME-type `multipart/form-data`, as is defined by [IETF RFC
 7578](https://www.rfc-editor.org/rfc/rfc7578).
 
 
-There is a different callout, created some time ago, available at
+> There is a different callout, created some time ago, available at
 [Apigee-Java-Simple-MultipartForm](https://github.com/DinoChiesa/Apigee-Java-Simple-MultipartForm).
-That one has a few external dependencies, which then brought in dependencies on
-the Servlet API, and some other things. I thought that was less than optimal,
-for just a stream parsing / consolidation tool.  Also there were two ways to
-configure it, and explaining and supporting those two ways was somewhat
-complicated. And I have not tested it on Apigee X.
+> There are some drawbacks. 
+> - That one has a few external dependencies, which then brought in dependencies on
+>   the Servlet API, and some other things. Those dependencies are less than optimal,
+>   for just a stream parsing / consolidation tool.  
+> - there are two ways to
+>   configure it, and explaining and supporting those two ways was somewhat
+>   complicated. 
+> - it has not been tested on Apigee X.
 
-I created this new implementation, for the same purpose: creating and parsing
-`multipart/form-data` payloads. This one has fewer external dependencies - only
-one for reading/parsing JSON. It works similarly, but is simpler.
+
+This new implementation has none of those drawbacks. It works similarly, but is
+simpler. This one has fewer external dependencies - only one for reading/parsing
+JSON. It works on Apigee X.
+
 
 ## Disclaimer
 
 This example is not an official Google product, nor is it part of an official
 Google product.
 
+## Example payload
+
+The kinds of payloads the callout can parse or generate are like so:
+
+```
+POST / HTTP/1.1
+Host: my-host-name
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:29.0) Gecko/20100101 Firefox/29.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Type: multipart/form-data; boundary=---------------------------e3d33b704923419d
+Content-Length: 554
+
+-----------------------------e3d33b704923419d
+Content-Disposition: form-data; name="text"
+
+text default
+-----------------------------e3d33b704923419d
+Content-Disposition: form-data; name="file1.txt"
+Content-Type: text/plain
+
+Content of file1.txt.
+
+-----------------------------e3d33b704923419d
+Content-Disposition: form-data; name="file2.png"
+Content-Type: image/png
+
+...image bytes here...
+
+-----------------------------e3d33b704923419d--
+```
 
 ## Using this policy
 
@@ -34,8 +72,8 @@ instructions, you should be able to figure it out if you know and use
 maven.
 
 1. copy the jar file, available in
-   target/apigee-multipart-form-20230628.jar , if you have built the
-   jar, or in [the repo](bundle/apiproxy/resources/java/apigee-multipart-form-20230628.jar)
+   target/apigee-multipart-form-20250405.jar , if you have built the
+   jar, or in [the repo](bundle/apiproxy/resources/java/apigee-multipart-form-20250405.jar)
    if you have not, to your apiproxy/resources/java directory. You can
    do this offline, or using the graphical Proxy Editor in the Apigee
    Admin UI.
@@ -48,14 +86,14 @@ maven.
     <JavaCallout name='Java-Multipart-Form-1'>
         ...
       <ClassName>com.google.apigee.callouts.MultipartFormCreatorV2</ClassName>
-      <ResourceURL>java://apigee-multipart-form-20230628.jar</ResourceURL>
+      <ResourceURL>java://apigee-multipart-form-20250404.jar</ResourceURL>
     </JavaCallout>
    ```
 
 3. attach that policy in the appropriate place in your API Proxy.
 
 3. use the Apigee UI, or a command-line tool like
-   [importAndDeploy.js](https://github.com/DinoChiesa/apigee-edge-js/blob/master/examples/importAndDeploy.js) or
+   [importAndDeploy.js](https://github.com/DinoChiesa/apigee-edge-js-examples/blob/main/importAndDeploy.js),
    [apigeecli](https://github.com/apigee/apigeecli)
    or similar to
    import your proxy into an Apigee organization, and then deploy the proxy .
@@ -100,10 +138,10 @@ This callout will create a form payload, using inputs that you specify.
 
 It accepts two properties as input:
 
-| property name   | description                                                                                  |
-| ----------------| -------------------------------------------------------------------------------------------- |
-| **descriptor**  | required\*. a JSON string, which describes the parts to add to the form. See details below.  |
-| **destination** | optional, a string, the name of a message. If it does not exist, it will be created. Defaults to 'message'.          |
+| property name   | description                                                                                                 |
+|-----------------|-------------------------------------------------------------------------------------------------------------|
+| **descriptor**  | required\*. a JSON string, which describes the parts to add to the form. See details below.                 |
+| **destination** | optional, a string, the name of a message. If it does not exist, it will be created. Defaults to 'message'. |
 
 
 An example for creating a form:
@@ -128,7 +166,7 @@ An example for creating a form:
     </Property>
   </Properties>
   <ClassName>com.google.apigee.callouts.MultipartFormCreatorV2</ClassName>
-  <ResourceURL>java://apigee-multipart-form-20230628.jar</ResourceURL>
+  <ResourceURL>java://apigee-multipart-form-20250404.jar</ResourceURL>
 </JavaCallout>
 ```
 
@@ -202,9 +240,10 @@ This callout will parse a form, using the content of the specified message as in
 
 It accepts a single parameter as input:
 
-| property name  | status   | description                                                                |
-| -------------- | -------- | -------------------------------------------------------------------------- |
-| **source**     | optional | name of a variable containing a message, containing a form. defaults to "message". |
+| property name  | status   | description                                                                                     |
+|----------------|----------|-------------------------------------------------------------------------------------------------|
+| **source**     | optional | name of a variable containing a message, containing a form. defaults to "message".              |
+| **size-limit** | optional | a number expressing the size limit of for parts the callout should parse. defaults to no limit. |
 
 An example for parsing a form:
 
@@ -214,7 +253,7 @@ An example for parsing a form:
     <Property name="source">message</Property>
   </Properties>
   <ClassName>com.google.apigee.callouts.MultipartFormParserV2</ClassName>
-  <ResourceURL>java://apigee-multipart-form-20230628.jar</ResourceURL>
+  <ResourceURL>java://apigee-multipart-form-20250404.jar</ResourceURL>
 </JavaCallout>
 ```
 
@@ -239,25 +278,24 @@ Hello World
 The callout sets variables in the context containing information about the parts of the inbound form.
 
 
-| variable name            | description                                                                |
-| ------------------------ | -------------------------------------------------------------------------- |
-| **items**                | String, a comma-separated list of file items from the form.                |
-| **itemcount**            | String, a number indicating the number of  file items found in the form.   |
-| **item_filename_N**      | name of item number N.                                                     |
-| **item_content_N**       | content for item N.  This is a byte array. You may need to decode it using a subsequent policy.      |
-| **item_content-type_N**  | String, the content-type for item N.                                       |
-| **item_size_N**          | String, the size in bytes of the content for item N.                       |
+| variable name           | description                                                                                     |
+|-------------------------|-------------------------------------------------------------------------------------------------|
+| **items**               | String, a comma-separated list of file items from the form.                                     |
+| **itemcount**           | String, a number indicating the number of  file items found in the form.                        |
+| **item_filename_N**     | name of item number N.                                                                          |
+| **item_content_N**      | content for item N.  This is a byte array. You may need to decode it using a subsequent policy. |
+| **item_content-type_N** | String, the content-type for item N.                                                            |
+| **item_size_N**         | String, the size in bytes of the content for item N.                                            |
 
 Subsequent policies can then read these variables and operate on them.
 
-There is a limit of 5MB for the size of the uploaded files in the multipart
-form.  If you have an upload which exceeds that limit the callout will fail.
+The callout will simply ignore any part that exceeds the configured `size-limit`.
 
 
 ## ContentSetter
 
-This callout will set a byte array into a message content.
-It may be useful after parsing a multipart form, if you want to set ONE of the parsed items into the message content of a different message.
+This is a companion class. It will set a byte array into a message content. 
+This may be useful after parsing a multipart form, if you want to set ONE of the parsed items into the message content of a different message.
 
 Normally you would use the Apigee `AssignMessage` policy to do this, like so:
 ```
@@ -272,17 +310,17 @@ Normally you would use the Apigee `AssignMessage` policy to do this, like so:
 
 ...which says to use the output of a prior "parse" callout as the full content for this response message.
 
-But AssignMessage seems to treat the referenced variable as a string, so the result is that the response.content gets a string like "[B@1cf582a1". Not helpful.
+But AssignMessage seems to always treat the referenced variable as a string, so the result is that the response.content gets a string like "[B@1cf582a1". Not helpful.
 
 This callout avoids that pitfall.
 
 It accepts two properties as input:
 
-| property name   | description                                                                                  |
-| ----------------| -------------------------------------------------------------------------------------------- |
-| **destination** | optional, a string, the name of a message. If it does not exist, it will be created. Defaults to 'message'.          |
-| **contentVar**  | required. the name of a context variable, which contains a byte array or string.  |
-| **contentType** | optional. the value to set into the content-type header of the message. Default: don't set a content-type header.  |
+| property name   | description                                                                                                       |
+|-----------------|-------------------------------------------------------------------------------------------------------------------|
+| **destination** | optional, a string, the name of a message. If it does not exist, it will be created. Defaults to 'message'.       |
+| **contentVar**  | required. the name of a context variable, which contains a byte array or string.                                  |
+| **contentType** | optional. the value to set into the content-type header of the message. Default: don't set a content-type header. |
 
 Example:
 
@@ -294,10 +332,9 @@ Example:
     <Property name="contentType">{mpf_item_content-type_1</Property>
   </Properties>
   <ClassName>com.google.apigee.callouts.ContentSetter</ClassName>
-  <ResourceURL>java://apigee-multipart-form-20230628.jar</ResourceURL>
+  <ResourceURL>java://apigee-multipart-form-20250404.jar</ResourceURL>
 </JavaCallout>
 ```
-
 
 
 ## Example API Proxy
@@ -388,14 +425,14 @@ Building from source requires Java 1.8, and Maven.
 
 ## License
 
-This material is Copyright 2018-2023 Google LLC.  and is licensed under the
+This material is Copyright © 2018-2025 Google LLC, and is licensed under the
 [Apache 2.0 License](LICENSE). This includes the Java code as well as the API
 Proxy configuration.
 
 ## Bugs
 
 * The automated tests are pretty thin.
-* There is no way to adjust the size limit for the uploaded files.
+* The size limit for the uploaded files enforced by the callout is hard-coded. There is no way to adjust the it, without re-compiling.
 
 
 

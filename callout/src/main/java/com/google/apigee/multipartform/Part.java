@@ -1,4 +1,4 @@
-// Copyright 2021-2023 Google LLC.
+// Copyright © 2021-2025 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,6 +88,8 @@ public class Part {
     int cur = 0;
     for (; ; ) {
       cur = in.read();
+      if (cur == -1) break;
+      // https://www.rfc-editor.org/rfc/rfc2046#section-5.1 says always CRLF
       if (cur == '\n' && prev == '\r') break;
       buf[pos++] = (byte) cur;
       if (pos == buf.length) {
@@ -97,7 +99,8 @@ public class Part {
       prev = cur;
     }
     // omit trailing CR
-    return new String(Arrays.copyOf(buf, pos - 1), "UTF-8");
+
+    return (pos > 0) ? new String(Arrays.copyOf(buf, pos - 1), "UTF-8") : null;
   }
 
   public static Part parse(byte[] bytes) throws IOException {
@@ -106,23 +109,27 @@ public class Part {
     String ctype = null;
     for (; ; ) {
       String hdr = lineFrom(bis);
-      if (hdr.length() == 0) break; // end of headers
+      if (hdr == null || hdr.length() == 0) break; // end of headers
       List<String> components =
           Arrays.stream(hdr.split(":", 2)).map(s -> s.trim()).collect(Collectors.toList());
 
       String headerName = components.get(0).toLowerCase();
       if (headerName.equals("content-disposition")) {
-        Pattern pattern = Pattern.compile("name=['\"]([^'\"]+)['\"]");
+        Pattern pattern = Pattern.compile("\\bname=(['\"]?)([^'\"]+)\\1(?:;|\\sb|$)");
         Matcher matcher = pattern.matcher(components.get(1));
         if (matcher.find()) {
-          partName = matcher.group(1);
+          partName = matcher.group(2);
         }
       } else if (headerName.equals("content-type")) {
         ctype = components.get(1);
       }
     }
 
-    Part part = new Part(partName).withContentType(ctype);
+    if (partName == null) {
+      return null;
+    }
+    // https://www.rfc-editor.org/rfc/rfc7578.html#section-4.4 default to text/plain
+    Part part = new Part(partName).withContentType(ctype == null ? "text/plain" : ctype);
 
     // remaining data is content
     int b;
@@ -131,7 +138,6 @@ public class Part {
       baos.write(b);
     }
     part.setPartContent(baos.toByteArray());
-
     return part;
   }
 

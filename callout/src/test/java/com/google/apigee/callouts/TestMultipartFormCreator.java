@@ -75,6 +75,57 @@ public class TestMultipartFormCreator extends TestBase {
     Assert.assertNotNull(output, "no output");
   }
 
+  @Test
+  public void create_Simple_SinglePart_JSON() throws Exception {
+    byte[] imageBytes = loadImageBytes("Logs_512px.png.b64");
+    msgCtxt.setVariable("EnvelopeStr",
+" {\n"
++"  \"Trace-Id\": \"abc123ABC\",\n"
++"  \"Time\": \"1689092888\",\n"
++"  \"Payload\": {\n"
++"    \"foo\" : \"bar\"\n"
++"  }\n"
+                        +"}\n");
+
+    String descriptorJson =
+        "{\n"
+            + "  \"ENVELOPE\" : {\n"
+            + "    \"content-var\" :  \"EnvelopeStr\",\n"
+            + "    \"content-type\" : \"application/json\",\n"
+            + "    \"want-b64-decode\": false,\n"
+            + "    \"file-name\": \"envelope.json\"\n"
+            + "  }\n"
+            + "}\n";
+    //msgCtxt.setVariable("descriptor-json", descriptorJson);
+
+    Properties props = new Properties();
+    props.put("descriptor", descriptorJson);
+    // props.put("destination", "destination");
+    props.put("debug", "true");
+
+    MultipartFormCreatorV2 callout = new MultipartFormCreatorV2(props);
+
+    // execute and retrieve output
+    ExecutionResult actualResult = callout.execute(msgCtxt, exeCtxt);
+    ExecutionResult expectedResult = ExecutionResult.SUCCESS;
+    Assert.assertEquals(actualResult, expectedResult, "ExecutionResult");
+
+    // check result and output
+    Object error = msgCtxt.getVariable("mpf_error");
+    Assert.assertNull(error, "error");
+
+    Object stacktrace = msgCtxt.getVariable("mpf_stacktrace");
+    Assert.assertNull(stacktrace, "stacktrace");
+
+    // cannot directly reference message.content with the mocked MessageContext
+    // Object output = msgCtxt.getVariable("message.content");
+    Message msg = msgCtxt.getVariable("message");
+    InputStream is = msg.getContentAsStream();
+    Assert.assertNotNull(is, "no stream");
+
+    copyInputStreamToFile(is, new File("./create_Simple_SinglePart_JSON.out"));
+  }
+
   private static void copyInputStreamToFile(InputStream inputStream, File file) throws IOException {
     Boolean wantAppend = false;
     try (FileOutputStream outputStream = new FileOutputStream(file, wantAppend)) {
@@ -105,11 +156,11 @@ public class TestMultipartFormCreator extends TestBase {
 
     byte[] imageBytes = loadImageBytes("Logs_512px.png");
     msgCtxt.setVariable("imageBytes", imageBytes);
+    // for diagnostics
     msgCtxt.setVariable("descriptor-json", descriptorJson);
 
     Properties props = new Properties();
     props.put("descriptor", descriptorJson);
-    // props.put("destination", "destination");
     props.put("debug", "true");
 
     MultipartFormCreatorV2 callout = new MultipartFormCreatorV2(props);

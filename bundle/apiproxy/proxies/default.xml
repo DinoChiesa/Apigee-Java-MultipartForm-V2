@@ -3,7 +3,6 @@
   <HTTPProxyConnection>
     <BasePath>/multipart-form</BasePath>
     <Properties/>
-    <VirtualHost>secure</VirtualHost>
   </HTTPProxyConnection>
 
   <FaultRules/>

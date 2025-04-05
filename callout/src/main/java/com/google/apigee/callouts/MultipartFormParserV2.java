@@ -1,6 +1,4 @@
-// MultipartFormParserV2.java
-//
-// Copyright (c) 2018-2023 Google LLC.
+// Copyright © 2018-2025 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,9 +49,26 @@ public class MultipartFormParserV2 extends CalloutBase implements Execution {
     return source;
   }
 
+  public static int safeStringToInt(String str) {
+    try {
+      return Integer.parseInt(str);
+    } catch (NumberFormatException e) {
+      return 0;
+    }
+  }
+
+  private int getSizeLimit(MessageContext msgCtxt) throws Exception {
+    String sizeLimitStr = getSimpleOptionalProperty("size-limit", msgCtxt);
+    if (sizeLimitStr == null) {
+      return 0;
+    }
+    return safeStringToInt(sizeLimitStr);
+  }
+
   public ExecutionResult execute(final MessageContext msgCtxt, final ExecutionContext execContext) {
     try {
       String source = getSource(msgCtxt);
+      int sizeLimit = getSizeLimit(msgCtxt);
       Message message = (Message) msgCtxt.getVariable(source);
       if (message == null) {
         throw new IllegalStateException("source message is null.");
@@ -68,7 +83,8 @@ public class MultipartFormParserV2 extends CalloutBase implements Execution {
       }
       String boundary = ctype.substring("multipart/form-data; boundary=".length());
 
-      StreamSearcher searcher = new StreamSearcher(boundary.getBytes(StandardCharsets.UTF_8));
+      StreamSearcher searcher =
+          new StreamSearcher(boundary.getBytes(StandardCharsets.UTF_8), sizeLimit);
       List<String> names = new ArrayList<String>();
       try (BufferedInputStream bis =
           new BufferedInputStream(message.getContentAsStream(), BUFFER_SIZE)) {
