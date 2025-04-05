@@ -440,7 +440,7 @@ Proxy configuration.
 ## Bugs
 
 * The automated tests are pretty thin.
-* The size limit for the uploaded files enforced by the callout is hard-coded. There is no way to adjust the it, without re-compiling.
+
 
 
 
